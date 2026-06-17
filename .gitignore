@@ -1,0 +1,7 @@
+﻿node_modules/
+__pycache__/
+*.db
+.env
+logs/
+uploads/
+_srv_*.txt
