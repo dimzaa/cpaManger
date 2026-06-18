@@ -17,3 +17,5 @@ pytz>=2024.1
 # Hebrew PDF text shaping (required by services/pdf_generator.py)
 python-bidi==0.4.2
 arabic-reshaper==3.0.0
+# Excel export (required by routes/export.py)
+openpyxl==3.1.2
