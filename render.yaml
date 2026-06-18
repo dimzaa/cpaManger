@@ -1,0 +1,32 @@
+# Render Blueprint — one-shot service config.
+#
+# Instead of clicking through Render's UI, you can hit "New +" → "Blueprint"
+# and paste in your repo. Render reads this file and provisions everything.
+# DOES NOT create the Postgres database — use Neon (free, persistent) for
+# that and set DATABASE_URL manually in Step 1 of DEPLOY.md.
+
+services:
+  - type: web
+    name: cpa-backend
+    runtime: python
+    region: frankfurt   # closest free region to Israel
+    plan: free
+    branch: main
+    rootDir: .
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT --workers 1
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        generateValue: true   # Render auto-generates a strong random value
+      - key: DATABASE_URL
+        sync: false           # you paste the Neon URL manually in the dashboard
+      - key: CORS_ORIGINS
+        sync: false           # set to your Vercel URL after frontend deploys
+      - key: UPLOAD_DIR
+        value: /tmp/uploads   # Render free has ephemeral disk; store uploads
+                              # in the DB or in R2 if you need persistence

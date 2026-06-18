@@ -4,6 +4,8 @@ Main FastAPI application entry point.
 Creates the FastAPI app, registers all routes, and starts the server.
 """
 
+import os
+
 # Ensure UTF-8 console output on Windows so emoji / Hebrew in log lines don't
 # crash the logging handler under code pages like cp1255.
 import sys as _sys
@@ -111,10 +113,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Add CORS middleware
+# Add CORS middleware. Origins come from CORS_ORIGINS env var (comma-separated).
+# Default to "*" so local dev keeps working without env config; lock down in
+# production by setting CORS_ORIGINS=https://your-frontend.vercel.app on Render.
+_cors_origins_raw = os.getenv("CORS_ORIGINS", "*")
+_cors_origins = [o.strip() for o in _cors_origins_raw.split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, restrict to specific origins
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -228,28 +234,10 @@ async def general_exception_handler(request, exc):
     )
 
 
-# ========== STARTUP MESSAGES ==========
-
-@app.on_event("startup")
-async def startup_message():
-    """Print startup messages."""
-    print("\n" + "="*60)
-    print("✅ Education Budget Management Platform API Ready")
-    print("="*60)
-    print(f"\n📚 API Documentation:")
-    print(f"   http://{API_HOST}:{API_PORT}/docs    (Swagger UI)")
-    print(f"   http://{API_HOST}:{API_PORT}/redoc   (ReDoc)")
-    print(f"\n🔗 Main Endpoints:")
-    print(f"   POST   /api/upload                    - Upload budget files")
-    print(f"   GET    /api/municipalities            - List municipalities")
-    print(f"   GET    /api/budget/{'{id}'}/{'{month}'}            - Get budget data")
-    print(f"   GET    /health                       - Health check")
-    print("\n" + "="*60 + "\n")
-
+# ========== CLI ENTRY ==========
 
 if __name__ == "__main__":
     import uvicorn
-
     uvicorn.run(
         "backend.main:app",
         host=API_HOST,

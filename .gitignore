@@ -2,6 +2,20 @@
 __pycache__/
 *.db
 .env
+.env.local
+.env.production
+backend/.env
+frontend/.env
+frontend/.env.local
+frontend/.env.production
 logs/
 uploads/
 _srv_*.txt
+# Build outputs
+frontend/dist/
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+*.pyc
+.pytest_cache/

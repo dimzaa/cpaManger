@@ -415,10 +415,78 @@ async def upload_budget_file(
                             # is covered by the backend services invoked elsewhere.
                             _ = institution_rows  # pragma: no cover
 
-                except Exception as _inner_exc:  # noqa: BLE001
-                    # Inner try from line 166 — re-raise so outer handler logs it.
-                    raise
+                    db.flush()
+                    saved_runs.append({
+                        "run_id": run.id,
+                        "municipality_code": code_str,
+                        "municipality_id": mun.id,
+                        "month": month_str,
+                        "year": year,
+                        "is_balanced": run.is_balanced,
+                        "invoice_total": run.invoice_total,
+                        "breakdown_total": run.breakdown_total,
+                        "difference": run.difference,
+                        "lines_ingested": int(len(breakdown_rows)),
+                    })
 
-    except Exception as _outer_exc:  # noqa: BLE001
-        # Outer try from line 72 — re-raise; upload route logs and returns 500.
+                except Exception as _inner_exc:
+                    logger.error(
+                        f"Failed to ingest month {month_str} for muni {code_str}: {_inner_exc}",
+                        exc_info=True,
+                    )
+                    db.rollback()
+                    errors.append({
+                        "municipality_code": code_str,
+                        "month": month_str,
+                        "error": str(_inner_exc)[:500],
+                    })
+
+        db.commit()
+
+        total_lines = sum(r.get("lines_ingested", 0) for r in saved_runs)
+        total_amount = float(breakdown_df["amount"].sum()) if "amount" in breakdown_df.columns else 0.0
+        return {
+            "success": len(errors) == 0,
+            "runs": saved_runs,
+            "errors": errors,
+            "total_runs": len(saved_runs),
+            "total_lines": total_lines,
+            "total_amount": total_amount,
+            "warnings": [
+                {k: v for k, v in w.items() if k != "message"}
+                | {"message": str(w.get("message", ""))[:500]}
+                for w in ingestion_warnings
+            ],
+            "warning_count": len(ingestion_warnings),
+            "balanced_runs": int(analysis["summary"]["balanced_runs"]),
+            "unbalanced_runs": int(analysis["summary"]["unbalanced_runs"]),
+            "zip_filename": zip_filename,
+        }
+
+    except FileParserException as _fpe:
+        if temp_dir and os.path.isdir(temp_dir):
+            import shutil
+            shutil.rmtree(temp_dir, ignore_errors=True)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"File parsing failed: {_fpe}",
+        )
+    except HTTPException:
         raise
+    except Exception as _outer_exc:
+        logger.error(f"Upload failed: {_outer_exc}", exc_info=True)
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Upload processing failed: {_outer_exc}",
+        )
+    finally:
+        if temp_dir and os.path.isdir(temp_dir):
+            try:
+                import shutil
+                shutil.rmtree(temp_dir, ignore_errors=True)
+            except Exception:
+                pass
