@@ -416,6 +416,26 @@ async def upload_budget_file(
                             _ = institution_rows  # pragma: no cover
 
                     db.flush()
+
+                    # Priority-1 dashboard aggregates: compute & persist before
+                    # committing so the run row is dashboard-ready in one shot.
+                    # Failure here is non-fatal — log & continue; the run is
+                    # still usable, the aggregates just get backfilled later.
+                    try:
+                        from backend.services.run_aggregates import recompute_run_aggregates
+                        agg = recompute_run_aggregates(db, run.id)
+                        print(
+                            f"   ✓ Aggregates: regular=₪{agg['regular_total']:,.2f}, "
+                            f"retro+=₪{agg['retro_positive_total']:,.2f}, "
+                            f"retro-=₪{agg['retro_negative_total']:,.2f}, "
+                            f"topics={agg['topics_count']}, lines={agg['lines_count']}"
+                        )
+                    except Exception as _agg_exc:  # noqa: BLE001
+                        print(f"   ⚠️  Aggregate computation failed: {_agg_exc}")
+                        logger.warning(
+                            f"Aggregate computation failed for run {run.id}: {_agg_exc}"
+                        )
+
                     saved_runs.append({
                         "run_id": run.id,
                         "municipality_code": code_str,
@@ -427,6 +447,10 @@ async def upload_budget_file(
                         "breakdown_total": run.breakdown_total,
                         "difference": run.difference,
                         "lines_ingested": int(len(breakdown_rows)),
+                        "regular_total": run.regular_total,
+                        "retro_positive_total": run.retro_positive_total,
+                        "retro_negative_total": run.retro_negative_total,
+                        "topics_count": run.topics_count,
                     })
 
                 except Exception as _inner_exc:
@@ -489,4 +513,6 @@ async def upload_budget_file(
                 import shutil
                 shutil.rmtree(temp_dir, ignore_errors=True)
             except Exception:
+                pass
+ except Exception:
                 pass
