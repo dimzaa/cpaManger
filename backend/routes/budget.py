@@ -14,7 +14,7 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
 from backend.database import get_db
-from backend.models import Municipality, MonthlyRun, BudgetLine, BudgetLineInstitution, User
+from backend.models import Municipality, MonthlyRun, BudgetLine, BudgetLineInstitution, User, TopicSummary
 from backend.models.approved_explanation import ApprovedExplanation
 from backend.schemas import BudgetLineResponse
 from backend.services.student_count_delta import compute_student_count_delta
@@ -917,3 +917,56 @@ def calculate_month_changes(
     }
 
            
+
+@router.get("/runs/{run_id}/topic-summaries")
+def get_topic_summaries(
+    run_id: int,
+    current_user: User = Depends(require_login),
+    db: Session = Depends(get_db),
+) -> List[Dict[str, Any]]:
+    """
+    Priority-2 endpoint. Returns the denormalised per-topic snapshot for one run,
+    sorted by absolute amount_total descending.
+
+    Each row carries: topic_code/name, the four amount components, MoM delta vs
+    previous month, anomaly_flag, tie_out_diff, n_institutions and the top one.
+
+    These rows are populated at upload time by
+    ``backend.services.topic_summary_service.recompute_topic_summaries_for_run``.
+    """
+    run = db.query(MonthlyRun).filter(MonthlyRun.id == run_id).first()
+    if not run:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Run not found")
+    require_municipality_access(run.municipality_id, current_user)
+
+    rows = (
+        db.query(TopicSummary)
+        .filter(TopicSummary.run_id == run_id)
+        .all()
+    )
+    payload = [
+        {
+            "id": ts.id,
+            "run_id": ts.run_id,
+            "municipality_id": ts.municipality_id,
+            "topic_code": ts.topic_code,
+            "topic_name": bytes_to_string(ts.topic_name),
+            "amount_total": ts.amount_total,
+            "amount_regular": ts.amount_regular,
+            "amount_retro_pos": ts.amount_retro_pos,
+            "amount_retro_neg": ts.amount_retro_neg,
+            "prev_run_id": ts.prev_run_id,
+            "prev_month_amount": ts.prev_month_amount,
+            "delta_abs": ts.delta_abs,
+            "delta_pct": ts.delta_pct,
+            "anomaly_flag": ts.anomaly_flag,
+            "tie_out_diff": ts.tie_out_diff,
+            "n_institutions": ts.n_institutions,
+            "top_institution_code": ts.top_institution_code,
+            "top_institution_name": bytes_to_string(ts.top_institution_name),
+            "top_institution_amount": ts.top_institution_amount,
+        }
+        for ts in rows
+    ]
+    payload.sort(key=lambda r: abs(float(r["amount_total"] or 0.0)), reverse=True)
+    return payload

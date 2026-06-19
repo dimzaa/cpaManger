@@ -24,6 +24,7 @@ from backend.models.class_enrollment import ClassEnrollment
 from backend.models.staff_positions import StaffPosition
 from backend.models.transport_route import TransportRoute
 from backend.models.ingestion_warning import IngestionWarning
+from backend.models.topic_summary import TopicSummary
 
 __all__ = [
     "Municipality",
@@ -34,6 +35,7 @@ __all__ = [
     "StaffPosition",
     "TransportRoute",
     "IngestionWarning",
+    "TopicSummary",
     "User",
     "AuditLog",
     "UserRole",

@@ -436,6 +436,21 @@ async def upload_budget_file(
                             f"Aggregate computation failed for run {run.id}: {_agg_exc}"
                         )
 
+                    # Priority-2 topic summaries — wipes & rebuilds per (run, topic_code).
+                    # Non-fatal. Same pattern as Priority 1.
+                    try:
+                        from backend.services.topic_summary_service import recompute_topic_summaries_for_run
+                        ts = recompute_topic_summaries_for_run(db, run.id)
+                        print(
+                            f"   ✓ Topic summaries: {ts['topics']} topics, "
+                            f"anomalies={ts['anomalies']}, prev_run={ts['prev_run_id']}"
+                        )
+                    except Exception as _ts_exc:  # noqa: BLE001
+                        print(f"   ⚠️  Topic summary computation failed: {_ts_exc}")
+                        logger.warning(
+                            f"Topic summary computation failed for run {run.id}: {_ts_exc}"
+                        )
+
                     saved_runs.append({
                         "run_id": run.id,
                         "municipality_code": code_str,
@@ -513,6 +528,4 @@ async def upload_budget_file(
                 import shutil
                 shutil.rmtree(temp_dir, ignore_errors=True)
             except Exception:
-                pass
- except Exception:
                 pass
