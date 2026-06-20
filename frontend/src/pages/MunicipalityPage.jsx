@@ -352,11 +352,22 @@ export default function MunicipalityPage() {
               </h1>
               <p className="text-slate-600 mt-1 font-hebrew">{formatHebrewDate(selectedMonth)}</p>
             </div>
-            {budget && (
-              <span className={`inline-flex items-center px-4 py-2 rounded-full border font-hebrew font-semibold ${statusBadge.className}`}>
-                {statusBadge.icon} {statusBadge.text}
-              </span>
-            )}
+            <div className="flex items-center gap-3 flex-wrap">
+              {budget && (
+                <span className={`inline-flex items-center px-4 py-2 rounded-full border font-hebrew font-semibold ${statusBadge.className}`}>
+                  {statusBadge.icon} {statusBadge.text}
+                </span>
+              )}
+              <button
+                onClick={() => navigate(`/municipality/${id}/detail?month=${selectedMonth}`)}
+                disabled={!budget}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white rounded-lg font-hebrew font-semibold transition shadow"
+              >
+                <span>📊</span>
+                <span>פירוט מלא לפי קוד נושא</span>
+                <span>←</span>
+              </button>
+            </div>
           </div>
         </div>
 
