@@ -31,7 +31,7 @@ export default function AdminBudgetDetailPage() {
   const initialMonth = params.get('month');
   const months = getLast12Months();
 
-  console.log('נ“‹ [AdminBudgetDetailPage] Loaded with params:', {
+  console.log('📋 [AdminBudgetDetailPage] Loaded with params:', {
     municipalityId: id,
     initialMonth: initialMonth
   });
@@ -104,7 +104,7 @@ export default function AdminBudgetDetailPage() {
       // Load ministry codes with categories
       try {
         const codesRes = await ministryAPI.getCodes();
-        const categoryMap = new Map((codesRes.data || []).map(c => [String(c.code), c.category || '׳›׳׳׳™']));
+        const categoryMap = new Map((codesRes.data || []).map(c => [String(c.code), c.category || 'כללי']));
         setMinistryCodeCategory(categoryMap);
       } catch {
         setMinistryCodeCategory(new Map());
@@ -144,7 +144,7 @@ export default function AdminBudgetDetailPage() {
       }
     } catch (err) {
       console.error('[AdminBudgetDetailPage] Error:', err);
-      setError(`׳©׳’׳™׳׳” ׳‘׳˜׳¢׳™׳ ׳× ׳”׳ ׳×׳•׳ ׳™׳: ${err.message}`);
+      setError(`שגיאה בטעינת הנתונים: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -153,7 +153,7 @@ export default function AdminBudgetDetailPage() {
   const handleGeneratePdf = async () => {
     if (!id || !selectedMonth) return;
     setPdfGenerating(true);
-    setPdfToast({ type: 'info', msg: 'ג³ ׳׳™׳™׳¦׳¨ ׳“׳•׳— PDF...' });
+    setPdfToast({ type: 'info', msg: '⏳ מייצר דוח PDF...' });
     try {
       const res = await reportsAPI.generate(id, selectedMonth);
       const jobId = res.data.job_id;
@@ -165,7 +165,7 @@ export default function AdminBudgetDetailPage() {
           if (job.status === 'done') {
             clearInterval(pdfPollRef.current);
             setPdfGenerating(false);
-            setPdfToast({ type: 'success', msg: 'ג… ׳”׳“׳•׳— ׳׳•׳›׳ ג€” ׳׳•׳¨׳™׳“...' });
+            setPdfToast({ type: 'success', msg: '✅ הדוח מוכן — מוריד...' });
             // auto-download
             const dr = await reportsAPI.download(job.report_id);
             const blob = new Blob([dr.data], { type: 'application/pdf' });
@@ -178,14 +178,14 @@ export default function AdminBudgetDetailPage() {
           } else if (job.status === 'error') {
             clearInterval(pdfPollRef.current);
             setPdfGenerating(false);
-            setPdfToast({ type: 'error', msg: `ג ${job.error || '׳©׳’׳™׳׳” ׳‘׳™׳™׳¦׳•׳¨'}` });
+            setPdfToast({ type: 'error', msg: `❌ ${job.error || 'שגיאה בייצור'}` });
             setTimeout(() => setPdfToast(null), 4000);
           }
         } catch { clearInterval(pdfPollRef.current); setPdfGenerating(false); }
       }, 1500);
     } catch (err) {
       setPdfGenerating(false);
-      setPdfToast({ type: 'error', msg: err.response?.data?.detail || 'ג ׳©׳’׳™׳׳” ׳‘׳™׳¦׳™׳¨׳× ׳”׳“׳•׳—' });
+      setPdfToast({ type: 'error', msg: err.response?.data?.detail || '❌ שגיאה ביצירת הדוח' });
       setTimeout(() => setPdfToast(null), 4000);
     }
   };
@@ -215,7 +215,7 @@ export default function AdminBudgetDetailPage() {
         ...prev,
         [topicCode]: {
           loading: false,
-          error: isMissing ? '׳׳™׳ ׳₪׳™׳¨׳•׳˜ ׳׳₪׳™ ׳׳•׳¡׳“ ׳׳¨׳™׳¦׳” ׳–׳•' : '׳©׳’׳™׳׳” ׳‘׳˜׳¢׳™׳ ׳× ׳₪׳™׳¨׳•׳˜ ׳׳₪׳™ ׳׳•׳¡׳“',
+          error: isMissing ? 'אין פירוט לפי מוסד לריצה זו' : 'שגיאה בטעינת פירוט לפי מוסד',
           data: null,
           expanded: true,
         },
@@ -368,7 +368,7 @@ export default function AdminBudgetDetailPage() {
       const isMissing = err?.response?.status === 404;
       setAllHighSchoolBreakdown({
         loading: false,
-        error: isMissing ? '׳׳™׳ ׳₪׳™׳¨׳•׳˜ ׳׳₪׳™ ׳׳•׳¡׳“ ׳׳¨׳™׳¦׳” ׳–׳•' : '׳©׳’׳™׳׳” ׳‘׳˜׳¢׳™׳ ׳× ׳₪׳™׳¨׳•׳˜ ׳׳₪׳™ ׳׳•׳¡׳“',
+        error: isMissing ? 'אין פירוט לפי מוסד לריצה זו' : 'שגיאה בטעינת פירוט לפי מוסד',
         data: null,
         expanded: true,
       });
@@ -377,7 +377,7 @@ export default function AdminBudgetDetailPage() {
 
   const handlePersistReviewStatus = async ({ status, note }) => {
     if (!budget?.run_id) {
-      throw new Error('run_id ׳—׳¡׳¨ ׳‘׳ ׳×׳•׳ ׳™ ׳”׳×׳§׳¦׳™׳‘');
+      throw new Error('run_id חסר בנתוני התקציב');
     }
 
     const res = await runsAPI.updateReviewStatus(budget.run_id, status, note || '');
@@ -421,13 +421,13 @@ export default function AdminBudgetDetailPage() {
   };
 
   const handleExplanationModalClose = () => {
-    console.log('נ”’ [AdminBudgetDetailPage] Modal closing');
+    console.log('🔒 [AdminBudgetDetailPage] Modal closing');
     setEditingTopicCode(null);
     setEditingTopicName(null);
   };
 
   const handleExplanationSave = (newExplanation) => {
-    console.log('נ’¾ [AdminBudgetDetailPage] Explanation saved:', {
+    console.log('💾 [AdminBudgetDetailPage] Explanation saved:', {
       topicCode: editingTopicCode,
       explanation: newExplanation.substring(0, 50) + '...'
     });
@@ -461,9 +461,9 @@ export default function AdminBudgetDetailPage() {
     const hasRetro = lines.some(l => l.is_retro || l.line_type === 'retro');
     const hasNegative = lines.some(l => l.amount < 0);
     
-    if (hasRetro) return { bg: 'bg-amber-50', border: 'border-l-4 border-amber-400', badge: 'נ¡' };
-    if (hasNegative) return { bg: 'bg-red-50', border: 'border-l-4 border-red-400', badge: 'נ”´' };
-    return { bg: 'bg-green-50', border: 'border-l-4 border-green-400', badge: 'נ¢' };
+    if (hasRetro) return { bg: 'bg-amber-50', border: 'border-l-4 border-amber-400', badge: '🟡' };
+    if (hasNegative) return { bg: 'bg-red-50', border: 'border-l-4 border-red-400', badge: '🔴' };
+    return { bg: 'bg-green-50', border: 'border-l-4 border-green-400', badge: '🟢' };
   };
 
   const getLineColor = (line) => {
@@ -479,7 +479,7 @@ export default function AdminBudgetDetailPage() {
   };
 
   const getCategoryFor = (topicCode) => {
-    return ministryCodeCategory.get(String(topicCode)) || '׳›׳׳׳™';
+    return ministryCodeCategory.get(String(topicCode)) || 'כללי';
   };
 
   // Phase 3.1: Hebrew labels for raw ingestion line_type buckets.
@@ -612,15 +612,15 @@ export default function AdminBudgetDetailPage() {
 
   if (!selectedMonth) {
     return (
-      <PageWrapper title="׳₪׳™׳¨׳•׳˜ ׳×׳§׳¦׳™׳‘">
-        <div className="text-center text-neutral-600 font-hebrew">׳‘׳—׳™׳¨׳× ׳—׳•׳“׳©...</div>
+      <PageWrapper title="פירוט תקציב">
+        <div className="text-center text-neutral-600 font-hebrew">בחירת חודש...</div>
       </PageWrapper>
     );
   }
 
   return (
     <PageWrapper 
-      title={`${budget?.municipality.name || '׳¢׳™׳¨'} ג€” ${formatHebrewDate(selectedMonth)}`}
+      title={`${budget?.municipality.name || 'עיר'} — ${formatHebrewDate(selectedMonth)}`}
     >
       <div className="w-full max-w-6xl mx-auto px-4">
         {/* Back Button */}
@@ -630,7 +630,7 @@ export default function AdminBudgetDetailPage() {
             className="flex items-center gap-2 text-primary-600 hover:text-primary-700 font-hebrew font-semibold transition"
           >
             <ArrowRight size={20} />
-            ׳—׳–׳•׳¨ ׳׳¡׳™׳›׳•׳
+            חזור לסיכום
           </button>
         </div>
 
@@ -665,7 +665,7 @@ export default function AdminBudgetDetailPage() {
           <>
             {/* PAGE HEADER - STATUS BADGE */}
             <div className="mb-8 flex items-center justify-between flex-wrap gap-3">
-              <h1 className="text-4xl font-bold text-slate-900 font-hebrew flex-1">׳₪׳™׳¨׳•׳˜ ׳×׳§׳¦׳™׳‘ ׳׳₪׳•׳¨׳˜</h1>
+              <h1 className="text-4xl font-bold text-slate-900 font-hebrew flex-1">פירוט תקציב מפורט</h1>
               <div className="flex items-center gap-3">
                 <RoundingModeToggle mode={roundingMode} onChange={setRoundingMode} />
                 <ReviewStatusControl
@@ -686,9 +686,9 @@ export default function AdminBudgetDetailPage() {
                   {pdfGenerating ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      ׳׳™׳™׳¦׳¨ PDF...
+                      מייצר PDF...
                     </>
-                  ) : 'נ“¥ ׳”׳•׳¨׳“ ׳“׳•׳—'}
+                  ) : '📥 הורד דוח'}
                 </button>
                 <span className={`px-6 py-3 rounded-full border font-hebrew font-semibold text-base ${statusBadge.className} shadow-md`}>
                   {statusBadge.icon} {statusBadge.text}
@@ -722,34 +722,34 @@ export default function AdminBudgetDetailPage() {
 
             {/* SUMMARY CARDS ROW */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-              {/* Card 1: ׳¡׳›׳•׳ ׳׳’׳™׳¢ */}
+              {/* Card 1: סכום מגיע */}
               <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition border border-blue-100">
                 <div className="flex items-center gap-3 mb-3">
-                  <span className="text-4xl">נ’°</span>
-                  <p className="text-base font-hebrew text-blue-700 font-semibold">׳¡׳›׳•׳ ׳׳’׳™׳¢</p>
+                  <span className="text-4xl">💰</span>
+                  <p className="text-base font-hebrew text-blue-700 font-semibold">סכום מגיע</p>
                 </div>
                 <p className="text-3xl font-bold text-blue-900 font-hebrew">
                   <ShekelAmount amount={dueTotal} mode={concreteRoundingMode} />
                 </p>
               </div>
 
-              {/* Card 2: ׳¡׳›׳•׳ ׳©׳•׳׳ */}
+              {/* Card 2: סכום שולם */}
               <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition border border-green-100">
                 <div className="flex items-center gap-3 mb-3">
-                  <span className="text-4xl">ג…</span>
-                  <p className="text-base font-hebrew text-green-700 font-semibold">׳¡׳›׳•׳ ׳©׳•׳׳</p>
+                  <span className="text-4xl">✅</span>
+                  <p className="text-base font-hebrew text-green-700 font-semibold">סכום שולם</p>
                 </div>
                 <p className="text-3xl font-bold text-green-900 font-hebrew">
                   <ShekelAmount amount={paidTotal} mode={concreteRoundingMode} />
                 </p>
               </div>
 
-              {/* Card 3: ׳”׳₪׳¨׳© */}
+              {/* Card 3: הפרש */}
               <div className={`bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition border ${gapTotal < 0 ? 'border-red-100' : 'border-green-100'}`}>
                 <div className="flex items-center gap-3 mb-3">
-                  <span className="text-4xl">ג†•ן¸</span>
+                  <span className="text-4xl">↕ן¸</span>
                   <p className={`text-base font-hebrew font-semibold ${gapTotal < 0 ? 'text-red-700' : 'text-green-700'}`}>
-                    ׳”׳₪׳¨׳©
+                    הפרש
                   </p>
                 </div>
                 <p className={`text-3xl font-bold font-hebrew ${gapTotal < 0 ? 'text-red-900' : 'text-green-900'}`}>
@@ -757,11 +757,11 @@ export default function AdminBudgetDetailPage() {
                 </p>
               </div>
 
-              {/* Card 4: ׳¡׳”"׳› ׳¨׳˜׳¨׳• */}
+              {/* Card 4: סה"כ רטרו */}
               <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition border border-amber-100">
                 <div className="flex items-center gap-3 mb-3">
-                  <span className="text-4xl">נ“…</span>
-                  <p className="text-base font-hebrew text-amber-700 font-semibold">׳¡׳”"׳› ׳¨׳˜׳¨׳•</p>
+                  <span className="text-4xl">📅</span>
+                  <p className="text-base font-hebrew text-amber-700 font-semibold">סה"כ רטרו</p>
                 </div>
                 <p className="text-3xl font-bold text-amber-900 font-hebrew">
                   <ShekelAmount amount={retroTotal} mode={concreteRoundingMode} />
@@ -772,7 +772,7 @@ export default function AdminBudgetDetailPage() {
             {retroSchoolYearGroups.length > 0 && (
               <div className="bg-white rounded-2xl shadow-lg border border-amber-200 overflow-hidden mb-10">
                 <div className="px-8 py-5 border-b border-amber-200 bg-amber-50">
-                  <h2 className="font-hebrew font-bold text-2xl text-amber-900">׳¨׳˜׳¨׳• ׳׳₪׳™ ׳©׳ ׳× ׳׳™׳׳•׳“׳™׳</h2>
+                  <h2 className="font-hebrew font-bold text-2xl text-amber-900">רטרו לפי שנת לימודים</h2>
                 </div>
 
                 <div className="divide-y divide-amber-100">
@@ -791,12 +791,12 @@ export default function AdminBudgetDetailPage() {
                               <p className="font-hebrew font-bold text-xl text-slate-900">{schoolYear.label}</p>
                               <p className="font-hebrew text-sm text-slate-600">{schoolYear.subtitle}</p>
                               <p className="font-hebrew text-xs text-slate-500 mt-1">
-                                {schoolYear.retroLineCount} ׳©׳•׳¨׳•׳× ׳¨׳˜׳¨׳•
+                                {schoolYear.retroLineCount} שורות רטרו
                               </p>
                             </div>
                             <div className="flex items-center gap-5">
                               <p className="font-bold text-lg text-amber-900">{schoolYear.retroTotalFormatted}</p>
-                              <span className="text-lg font-hebrew text-slate-700">{isExpanded ? 'ג–¼' : 'ג–¶'}</span>
+                              <span className="text-lg font-hebrew text-slate-700">{isExpanded ? '▼' : '▶'}</span>
                             </div>
                           </div>
                         </button>
@@ -805,13 +805,13 @@ export default function AdminBudgetDetailPage() {
                           <div className="px-8 pb-6 space-y-3">
                             {schoolYear.codes.map((codeGroup) => {
                               const summary = budget.summary_by_topic?.[codeGroup.code] || {};
-                              const topicName = summary.topic_name || codeGroup.lines[0]?.budget_topic || `׳§׳•׳“ ${codeGroup.code}`;
+                              const topicName = summary.topic_name || codeGroup.lines[0]?.budget_topic || `קוד ${codeGroup.code}`;
 
                               return (
                                 <div key={`${schoolYear.key}-${codeGroup.code}`} className="border border-slate-200 rounded-xl overflow-hidden">
                                   <div className="px-5 py-4 bg-amber-50 border-b border-amber-100 flex items-center justify-between">
                                     <p className="font-hebrew font-semibold text-slate-900">
-                                      נ¡ {topicName} ג€” ׳§׳•׳“ {codeGroup.code}
+                                      🟡 {topicName} — קוד {codeGroup.code}
                                     </p>
                                     <p className="font-bold text-slate-900"><ShekelAmount amount={codeGroup.total} mode={concreteRoundingMode} /></p>
                                   </div>
@@ -823,7 +823,7 @@ export default function AdminBudgetDetailPage() {
                                           <div className="text-right">
                                             <p className="font-hebrew font-medium text-slate-900">{line.budget_topic}</p>
                                             <p className="font-hebrew text-sm text-slate-600 mt-1">
-                                              ׳—׳•׳“׳© ׳×׳—׳•׳׳”: {formatEffectiveMonth(line.period_month)}
+                                              חודש תחולה: {formatEffectiveMonth(line.period_month)}
                                             </p>
                                           </div>
                                           <p className="font-bold text-slate-900 text-lg"><ShekelAmount amount={line.amount} mode={concreteRoundingMode} /></p>
@@ -848,7 +848,7 @@ export default function AdminBudgetDetailPage() {
               <div className="bg-white rounded-2xl p-8 mb-10 shadow-lg border border-blue-200">
                 <div className="flex items-center justify-between gap-4 mb-6" dir="rtl">
                   <h2 className="font-hebrew font-bold text-2xl text-blue-900">
-                    נ”„ ׳׳” ׳”׳©׳×׳ ׳” ׳”׳—׳•׳“׳©? (׳‘׳”׳©׳•׳•׳׳” ׳-{budget.month_changes.previous_month})
+                    🔄 מה השתנה החודש? (בהשוואה ל-{budget.month_changes.previous_month})
                   </h2>
                   {Object.keys(studentCountDeltas).length > 0 && (
                     <label className="flex items-center gap-2 text-sm font-hebrew text-slate-700 select-none">
@@ -858,7 +858,7 @@ export default function AdminBudgetDetailPage() {
                         onChange={(e) => setOnlyStudentCountChanges(e.target.checked)}
                         className="h-4 w-4 accent-blue-600"
                       />
-                      ׳”׳¦׳’ ׳¨׳§ ׳©׳™׳ ׳•׳™׳™׳ ׳©׳ ׳’׳¨׳׳• ׳׳׳¡׳₪׳¨ ׳™׳׳“׳™׳
+                      הצג רק שינויים שנגרמו ממספר ילדים
                     </label>
                   )}
                 </div>
@@ -873,16 +873,16 @@ export default function AdminBudgetDetailPage() {
                     <div key={code} className="bg-gradient-to-r from-blue-50 to-white border border-blue-100 rounded-xl p-5">
                       <div className="flex flex-wrap items-center justify-between gap-2 mb-3" dir="rtl">
                         <p className="font-hebrew font-semibold text-lg text-slate-900">
-                          {change.topic_name} ג€” ׳§׳•׳“ {code}
+                          {change.topic_name} — קוד {code}
                         </p>
                         <StudentCountDeltaChip delta={studentCountDeltas[String(code)]} showDriverBadge />
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-base font-hebrew">
                         {/* Items count change */}
                         <div className={`flex items-baseline gap-2 ${change.items_change !== 0 ? 'text-neutral-700' : 'text-neutral-500'}`}>
-                          <span className="font-semibold">׳₪׳¨׳™׳˜׳™׳:</span>
+                          <span className="font-semibold">פריטים:</span>
                           <span className="text-neutral-600">
-                            {change.prev_lines_count} ג† {change.curr_lines_count}
+                            {change.prev_lines_count} ← {change.curr_lines_count}
                           </span>
                           {change.items_change !== 0 && (
                             <span className={change.items_change > 0 ? 'text-green-700 font-bold' : 'text-red-700 font-bold'}>
@@ -893,13 +893,13 @@ export default function AdminBudgetDetailPage() {
                         
                         {/* Amount change */}
                         <div className={`flex items-baseline gap-2 ${change.amount_change !== 0 ? 'text-neutral-700' : 'text-neutral-500'}`}>
-                          <span className="font-semibold">׳¡׳›׳•׳:</span>
+                          <span className="font-semibold">סכום:</span>
                           <span className="text-neutral-600">
-                            {formatShekelText(change.prev_total)} ג† {formatShekelText(change.curr_total)}
+                            {formatShekelText(change.prev_total)} ← {formatShekelText(change.curr_total)}
                           </span>
                           {change.amount_change !== 0 && (
                             <span className={change.amount_change > 0 ? 'text-green-700 font-bold' : 'text-red-700 font-bold'}>
-                              ({change.amount_change > 0 ? '+' : ''}{formatShekelText(change.amount_change)} ג€¢ {change.amount_change_pct > 0 ? '+' : ''}{change.amount_change_pct}%)
+                              ({change.amount_change > 0 ? '+' : ''}{formatShekelText(change.amount_change)} • {change.amount_change_pct > 0 ? '+' : ''}{change.amount_change_pct}%)
                             </span>
                           )}
                         </div>
@@ -916,10 +916,10 @@ export default function AdminBudgetDetailPage() {
                         if (dropItems < 0) {
                           const amountChange = Number(change.amount_change || 0);
                           const amountChangePct = Number(change.amount_change_pct || 0);
-                          const numericDropText = `${Math.abs(dropItems)} ׳₪׳¨׳™׳˜׳™׳ ׳”׳•׳¡׳¨׳• (${amountChange > 0 ? '+' : ''}${formatShekelText(amountChange)} ג€¢ ${amountChangePct > 0 ? '+' : ''}${amountChangePct}%)`;
+                          const numericDropText = `${Math.abs(dropItems)} פריטים הוסרו (${amountChange > 0 ? '+' : ''}${formatShekelText(amountChange)} • ${amountChangePct > 0 ? '+' : ''}${amountChangePct}%)`;
                           explanation = {
                             text: shouldAppendDropInterpretation
-                              ? `${numericDropText} ג€” ׳™׳™׳×׳›׳ ׳¡׳’׳™׳¨׳× ׳׳©׳¨׳•׳× ׳׳• ׳¡׳™׳•׳ ׳×׳©׳׳•׳׳™׳`
+                              ? `${numericDropText} — ייתכן סגירת משרות או סיום תשלומים`
                               : numericDropText,
                             isCustom: false,
                           };
@@ -938,7 +938,7 @@ export default function AdminBudgetDetailPage() {
                 {sortedCodes.length > 0 ? (
                   categoriesInOrder.map((categoryItem) => {
                     const { category, codes: codeList, total: categoryTotal } = categoryItem;
-                    const isHighSchoolCategory = category === '׳—׳˜׳™׳‘׳” ׳¢׳׳™׳•׳ ׳”';
+                    const isHighSchoolCategory = category === 'חטיבה עליונה';
                     const isCategoryExpanded = expandedCategories[category] !== false; // Default to expanded
 
                     return (

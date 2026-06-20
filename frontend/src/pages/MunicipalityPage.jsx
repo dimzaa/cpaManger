@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useLocation, useParams, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import PageWrapper from '../components/layout/PageWrapper';
 import { budgetAPI, reportsAPI } from '../services/api';
 import { formatHebrewDate, formatShekel, getCurrentMonth } from '../utils/format';
@@ -8,6 +8,7 @@ import { getBudgetStatus, getBudgetStatusBadge } from '../utils/budgetStatus';
 export default function MunicipalityPage() {
   const { id } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [budget, setBudget] = useState(null);
   const [historyMonths, setHistoryMonths] = useState({});
@@ -584,8 +585,16 @@ export default function MunicipalityPage() {
           </div>
         )}
 
-        {/* SECTION 5 — Download button */}
-        <div className="flex justify-start">
+        {/* SECTION 5 — Action buttons */}
+        <div className="flex flex-wrap justify-start gap-3">
+          <button
+            onClick={() => navigate(`/municipality/${id}/detail?month=${selectedMonth}`)}
+            disabled={!budget}
+            className="inline-flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white rounded-lg font-hebrew font-semibold transition shadow"
+          >
+            <span>📊</span>
+            <span>פירוט מלא לפי קוד נושא</span>
+          </button>
           <button
             onClick={handleDownloadPdf}
             disabled={pdfLoading || !budget}
