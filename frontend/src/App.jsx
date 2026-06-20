@@ -190,9 +190,9 @@ function AppContent() {
         <Route
           index
           element={
-            <ProtectedRoute requiredRoles={['admin']}>
+            <AdminRoute>
               <AnomaliesPage />
-            </ProtectedRoute>
+            </AdminRoute>
           }
         />
       </Route>
