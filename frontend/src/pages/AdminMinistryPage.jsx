@@ -142,6 +142,7 @@ function AdminCodesTab() {
   const [pageSize, setPageSize] = useState(15);
   const [editCode, setEditCode] = useState(null);
   const [expanded, setExpanded] = useState(new Set());
+  const [hideUnmapped, setHideUnmapped] = useState(true);  // hide 'מזוהה בלבד' rows by default
   const searchRef = useRef(null);
 
   const load = useCallback(async (q = search) => {
@@ -172,11 +173,14 @@ function AdminCodesTab() {
 
   const toggleExpanded = id => setExpanded(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
-  const totalPages = Math.max(1, Math.ceil(codes.length / pageSize));
+  // Apply hideUnmapped filter: 'מזוהה בלבד' rows are ones without a catalog row (no id).
+  const visibleCodes = hideUnmapped ? codes.filter(c => c.id) : codes;
+  const unmappedCount = codes.filter(c => !c.id).length;
+  const totalPages = Math.max(1, Math.ceil(visibleCodes.length / pageSize));
   const safePage = Math.min(page, totalPages);
   const startIdx = (safePage - 1) * pageSize;
   const endIdx = startIdx + pageSize;
-  const pagedCodes = codes.slice(startIdx, endIdx);
+  const pagedCodes = visibleCodes.slice(startIdx, endIdx);
   const missingMetadataCount = codes.filter((c) => {
     const nameValue = String(c.name_short ?? c.name ?? '').trim();
     const categoryValue = String(c.category ?? '').trim();
@@ -194,8 +198,21 @@ function AdminCodesTab() {
 
       <div className="flex items-center justify-between" dir="rtl">
         <p className="font-hebrew text-sm text-slate-500">
-          {codes.length} קודים סה"כ | {missingMetadataCount} עם מטאדטה חסרה
+          {visibleCodes.length} מוצגים | {codes.length} סה"כ
+          {unmappedCount > 0 && (
+            <span className="mr-2">| {unmappedCount} מזוהים בלבד (ללא מטאדטה)</span>
+          )}
         </p>
+        <button
+          onClick={() => { setHideUnmapped(v => !v); setPage(1); }}
+          className={`px-3 py-1 rounded-full text-xs font-hebrew border transition ${
+            hideUnmapped
+              ? 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+              : 'bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-200'
+          }`}
+        >
+          {hideUnmapped ? `הצג גם ${unmappedCount} מזוהים בלבד` : 'הסתר מזוהים בלבד'}
+        </button>
         <div className="flex items-center gap-2">
           <span className="font-hebrew text-xs text-slate-500">שורות בעמוד</span>
           <Sel value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }} className="w-24">
