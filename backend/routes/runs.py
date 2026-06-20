@@ -147,6 +147,12 @@ def list_all_runs(
             "difference": run.difference,
             "has_retro": has_retro,
             "retro_total": retro_total if has_retro else None,
+            # Priority-1 aggregates from monthly_runs
+            "regular_total": run.regular_total,
+            "retro_positive_total": run.retro_positive_total,
+            "retro_negative_total": run.retro_negative_total,
+            "topics_count": run.topics_count,
+            "lines_count": run.lines_count,
             "review_status": run.review_status or "pending",
             "reviewed_by_user_id": run.reviewed_by_user_id,
             "reviewed_at": run.reviewed_at,
