@@ -16,6 +16,7 @@ import { useRoundingMode } from '../utils/roundingMode';
 import RoundingModeToggle from '../components/common/RoundingModeToggle';
 import RoundingDisclosureBanner from '../components/common/RoundingDisclosureBanner';
 import ShekelAmount from '../components/common/ShekelAmount';
+import Sparkline from '../components/common/Sparkline';
 import StudentCountDeltaChip from '../components/common/StudentCountDeltaChip';
 import CpaInsightsPanel from '../components/common/CpaInsightsPanel';
 
@@ -1068,6 +1069,21 @@ export default function AdminBudgetDetailPage() {
                                                 <span className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
                                               )}
                                             </button>
+
+                                            {/* Priority-3: 12-month sparkline for this topic */}
+                                            {isDetailOpen && (
+                                              <div className="mt-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                                                <div className="text-xs font-hebrew text-slate-500 mb-2 text-right">
+                                                  מגמת 12 חודשים אחרונים — קוד {topicCode}
+                                                </div>
+                                                <Sparkline
+                                                  municipalityId={Number(id)}
+                                                  topicCode={topicCode}
+                                                  height={80}
+                                                  showAxis
+                                                />
+                                              </div>
+                                            )}
 
                                             {isDetailOpen && detail?.error && (
                                               <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm font-hebrew text-red-700">
