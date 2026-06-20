@@ -180,7 +180,7 @@ def recompute_topic_summaries_for_run(db: Session, run_id: int) -> Dict[str, Any
     prev_run = _find_prev_run(db, run)
     prev_run_id = prev_run.id if prev_run else None
 
-    flag_counts = {"new": 0, "outlier": 0, "normal": 0}
+    flag_counts = {"new": 0, "outlier": 0, "normal": 0, "disappeared": 0}
     inserted = 0
 
     for topic_code, agg in aggs.items():
@@ -222,6 +222,51 @@ def recompute_topic_summaries_for_run(db: Session, run_id: int) -> Dict[str, Any
             top_institution_amount=inst["top_institution_amount"],
         ))
         inserted += 1
+
+
+    # Priority-4: phantom rows for codes that existed in prev_run but vanished.
+    if prev_run_id is not None:
+        from sqlalchemy import distinct as _distinct
+        current_codes = {str(c) for c in aggs.keys()}
+        prev_code_rows = (
+            db.query(_distinct(BudgetLine.topic_code))
+            .filter(BudgetLine.run_id == prev_run_id)
+            .all()
+        )
+        prev_codes = {str(r[0]) for r in prev_code_rows}
+        for code in (prev_codes - current_codes):
+            prev_amt = _prev_topic_amount(db, prev_run_id, code)
+            if prev_amt is None or abs(prev_amt) < 1.0:
+                continue
+            # Pull a topic name from prev run for display purposes.
+            name_row = (
+                db.query(BudgetLine.budget_topic)
+                .filter(BudgetLine.run_id == prev_run_id, BudgetLine.topic_code == code)
+                .first()
+            )
+            topic_name = (name_row[0] if name_row else None) or None
+            db.add(TopicSummary(
+                run_id=run_id,
+                municipality_id=run.municipality_id,
+                topic_code=code,
+                topic_name=(topic_name or "")[:255] if topic_name else None,
+                amount_total=0.0,
+                amount_regular=0.0,
+                amount_retro_pos=0.0,
+                amount_retro_neg=0.0,
+                prev_run_id=prev_run_id,
+                prev_month_amount=prev_amt,
+                delta_abs=-prev_amt,
+                delta_pct=-100.0,
+                anomaly_flag="disappeared",
+                tie_out_diff=0.0,
+                n_institutions=0,
+                top_institution_code=None,
+                top_institution_name=None,
+                top_institution_amount=None,
+            ))
+            flag_counts["disappeared"] = flag_counts.get("disappeared", 0) + 1
+            inserted += 1
 
     db.flush()
     return {

@@ -125,6 +125,20 @@ export const budgetAPI = {
     apiClient.get(`/api/budget/runs/${runId}/student-count-deltas`, {
       params: { municipality_id: municipalityId },
     }),
+
+  // Priority 2: per-topic summary for one run (denormalised dashboard cache)
+  getTopicSummaries: (runId) =>
+    apiClient.get(`/api/budget/runs/${runId}/topic-summaries`),
+
+  // Priority 3: per-month history for one (muni, topic_code) — sparkline data
+  getCodeHistory: (municipalityId, topicCode) =>
+    apiClient.get(`/api/budget/municipalities/${municipalityId}/topic-history/${topicCode}`),
+
+  // Priority 4: anomalies list for one run + ack endpoint
+  getCodeAnomalies: (runId) =>
+    apiClient.get(`/api/budget/runs/${runId}/code-anomalies`),
+  acknowledgeAnomaly: (anomalyId) =>
+    apiClient.post(`/api/budget/code-anomalies/${anomalyId}/acknowledge`),
 };
 
 export const exportAPI = {

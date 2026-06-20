@@ -105,6 +105,15 @@ export default function DashboardPage() {
     retro_payments: runsForSelectedMonth
       .filter((r) => r.has_retro)
       .reduce((sum, r) => sum + Number(r.retro_total || 0), 0),
+    // Priority-1 aggregates surfaced from monthly_runs (denormalised cache).
+    settling_total: runsForSelectedMonth.reduce((sum, r) => sum + Number(r.breakdown_total || 0), 0),
+    regular_total: runsForSelectedMonth.reduce((sum, r) => sum + Number(r.regular_total || 0), 0),
+    retro_positive_total: runsForSelectedMonth.reduce((sum, r) => sum + Number(r.retro_positive_total || 0), 0),
+    retro_negative_total: runsForSelectedMonth.reduce((sum, r) => sum + Number(r.retro_negative_total || 0), 0),
+    topics_count_total: runsForSelectedMonth.reduce((sum, r) => sum + Number(r.topics_count || 0), 0),
+    lines_count_total: runsForSelectedMonth.reduce((sum, r) => sum + Number(r.lines_count || 0), 0),
+    balanced_count: runsForSelectedMonth.filter((r) => r.is_balanced === true).length,
+    unbalanced_count: runsForSelectedMonth.filter((r) => r.is_balanced === false).length,
   };
 
   const pageAmounts = [
@@ -217,6 +226,12 @@ export default function DashboardPage() {
           <SummaryStat label="סכום ששולם" value={<ShekelAmount amount={stats.total_paid} mode={concreteRoundingMode} />} color="success" />
           <SummaryStat label="יתרות פתוחות" value={stats.open_balances} color="info" />
           <SummaryStat label="תשלומי רטרו" value={<ShekelAmount amount={stats.retro_payments} mode={concreteRoundingMode} />} color="warning" />
+          <SummaryStat label="סכום מסולק החודש" value={<ShekelAmount amount={stats.settling_total} mode={concreteRoundingMode} />} color="success" />
+          <SummaryStat label="סכום רגיל" value={<ShekelAmount amount={stats.regular_total} mode={concreteRoundingMode} />} />
+          <SummaryStat label="רטרו חיובי" value={<ShekelAmount amount={stats.retro_positive_total} mode={concreteRoundingMode} />} color="info" />
+          <SummaryStat label="רטרו שלילי" value={<ShekelAmount amount={stats.retro_negative_total} mode={concreteRoundingMode} />} color="warning" />
+          <SummaryStat label="קודי נושא" value={stats.topics_count_total} />
+          <SummaryStat label="ריצות מאוזנות" value={`${stats.balanced_count}/${stats.balanced_count + stats.unbalanced_count}`} color={stats.unbalanced_count === 0 ? "success" : "warning"} />
         </div>
 
         {error && (

@@ -14,7 +14,7 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
 from backend.database import get_db
-from backend.models import Municipality, MonthlyRun, BudgetLine, BudgetLineInstitution, User, TopicSummary
+from backend.models import Municipality, MonthlyRun, BudgetLine, BudgetLineInstitution, User, TopicSummary, CodeHistory, CodeAnomaly
 from backend.models.approved_explanation import ApprovedExplanation
 from backend.schemas import BudgetLineResponse
 from backend.services.student_count_delta import compute_student_count_delta
@@ -970,3 +970,97 @@ def get_topic_summaries(
     ]
     payload.sort(key=lambda r: abs(float(r["amount_total"] or 0.0)), reverse=True)
     return payload
+
+
+
+@router.get("/municipalities/{municipality_id}/topic-history/{topic_code}")
+def get_code_history(
+    municipality_id: int,
+    topic_code: str,
+    current_user: User = Depends(require_login),
+    db: Session = Depends(get_db),
+) -> List[Dict[str, Any]]:
+    """
+    Priority-3 endpoint. Returns the per-month history for one (muni, topic_code),
+    chronologically ascending. Powers sparklines, YTD calculations, trend views.
+    """
+    require_municipality_access(municipality_id, current_user)
+    rows = (
+        db.query(CodeHistory)
+        .filter(
+            CodeHistory.municipality_id == municipality_id,
+            CodeHistory.topic_code == str(topic_code),
+        )
+        .order_by(CodeHistory.year_month.asc())
+        .all()
+    )
+    return [
+        {
+            "year_month": r.year_month,
+            "run_id": r.run_id,
+            "topic_code": r.topic_code,
+            "topic_name": bytes_to_string(r.topic_name),
+            "amount_total": r.amount_total,
+            "amount_regular": r.amount_regular,
+            "amount_retro_pos": r.amount_retro_pos,
+            "amount_retro_neg": r.amount_retro_neg,
+            "line_count": r.line_count,
+        }
+        for r in rows
+    ]
+
+
+
+@router.get("/runs/{run_id}/code-anomalies")
+def list_run_anomalies(
+    run_id: int,
+    current_user: User = Depends(require_login),
+    db: Session = Depends(get_db),
+) -> List[Dict[str, Any]]:
+    """Priority-4 endpoint. List anomalies for one run."""
+    run = db.query(MonthlyRun).filter(MonthlyRun.id == run_id).first()
+    if not run:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Run not found")
+    require_municipality_access(run.municipality_id, current_user)
+    rows = (
+        db.query(CodeAnomaly)
+        .filter(CodeAnomaly.run_id == run_id)
+        .order_by(CodeAnomaly.acknowledged_by_cpa.asc(), CodeAnomaly.flag_type, CodeAnomaly.topic_code)
+        .all()
+    )
+    return [
+        {
+            "id": a.id,
+            "run_id": a.run_id,
+            "municipality_id": a.municipality_id,
+            "topic_code": a.topic_code,
+            "flag_type": a.flag_type,
+            "previous_value": a.previous_value,
+            "current_value": a.current_value,
+            "delta": a.delta,
+            "delta_pct": a.delta_pct,
+            "narrative": bytes_to_string(a.narrative),
+            "acknowledged_by_cpa": a.acknowledged_by_cpa,
+            "acknowledged_at": a.acknowledged_at.isoformat() if a.acknowledged_at else None,
+        }
+        for a in rows
+    ]
+
+
+@router.post("/code-anomalies/{anomaly_id}/acknowledge")
+def acknowledge_anomaly(
+    anomaly_id: int,
+    current_user: User = Depends(require_login),
+    db: Session = Depends(get_db),
+) -> Dict[str, Any]:
+    """Mark an anomaly as acknowledged by the CPA."""
+    a = db.query(CodeAnomaly).filter(CodeAnomaly.id == anomaly_id).first()
+    if not a:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Anomaly not found")
+    require_municipality_access(a.municipality_id, current_user)
+    from datetime import datetime as _dt
+    a.acknowledged_by_cpa = True
+    a.acknowledged_at = _dt.utcnow()
+    a.acknowledged_by_user_id = current_user.id
+    db.commit()
+    return {"id": a.id, "acknowledged": True, "acknowledged_at": a.acknowledged_at.isoformat()}

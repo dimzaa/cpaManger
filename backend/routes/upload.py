@@ -451,6 +451,23 @@ async def upload_budget_file(
                             f"Topic summary computation failed for run {run.id}: {_ts_exc}"
                         )
 
+                    try:
+                        from backend.services.code_history_service import recompute_code_history_for_run
+                        ch = recompute_code_history_for_run(db, run.id)
+                        print(f"   OK Code history: {ch['rows_inserted']} rows for {ch['year_month']}")
+                    except Exception as _ch_exc:
+                        print(f"   WARN Code history failed: {_ch_exc}")
+                        logger.warning(f"Code history failed for run {run.id}: {_ch_exc}")
+
+                    # Priority-4 code_anomalies — long-form anomaly log.
+                    try:
+                        from backend.services.code_anomaly_service import recompute_anomalies_for_run
+                        an = recompute_anomalies_for_run(db, run.id)
+                        print(f"   OK Code anomalies: {an['total']} total, {an['anomalies']}")
+                    except Exception as _an_exc:
+                        print(f"   WARN Code anomalies failed: {_an_exc}")
+                        logger.warning(f"Code anomalies failed for run {run.id}: {_an_exc}")
+
                     saved_runs.append({
                         "run_id": run.id,
                         "municipality_code": code_str,

@@ -25,6 +25,8 @@ from backend.models.staff_positions import StaffPosition
 from backend.models.transport_route import TransportRoute
 from backend.models.ingestion_warning import IngestionWarning
 from backend.models.topic_summary import TopicSummary
+from backend.models.code_history import CodeHistory
+from backend.models.code_anomaly import CodeAnomaly
 
 __all__ = [
     "Municipality",
@@ -36,6 +38,8 @@ __all__ = [
     "TransportRoute",
     "IngestionWarning",
     "TopicSummary",
+    "CodeHistory",
+    "CodeAnomaly",
     "User",
     "AuditLog",
     "UserRole",
