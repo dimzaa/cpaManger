@@ -24,6 +24,7 @@ export default function Sidebar() {
     { label: 'אישורים', path: '/admin/approvals', icon: CheckCircle, badge: pendingCount > 0 ? pendingCount : null },
     { label: 'ניתוח משרות', path: '/admin/positions', icon: Briefcase, badge: null },
     { label: 'ניתוח ומגמות', path: '/admin/analytics', icon: BarChart3, badge: null },
+    { label: 'חריגות ובקרה', path: '/admin/anomalies', icon: AlertCircle, badge: null },
     { label: 'תזכורות ומועדים', path: '/admin/reminders', icon: Bell, badge: null },
     { label: 'משרד החינוך', path: '/admin/ministry', icon: BookOpen, badge: null },
   ] : [];

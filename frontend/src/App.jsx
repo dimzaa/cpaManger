@@ -7,6 +7,7 @@ import MunicipalityRoute from './guards/MunicipalityRoute';
 // CPA Pages
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
+import AnomaliesPage from './pages/AnomaliesPage';
 import UploadPage from './pages/UploadPage';
 import MunicipalityPage from './pages/MunicipalityPage';
 import AdminBudgetDetailPage from './pages/AdminBudgetDetailPage';
@@ -182,6 +183,16 @@ function AppContent() {
             <AdminRoute>
               <AdminAnalyticsPage />
             </AdminRoute>
+          }
+        />
+      </Route>
+      <Route path="/admin/anomalies">
+        <Route
+          index
+          element={
+            <ProtectedRoute requiredRoles={['admin']}>
+              <AnomaliesPage />
+            </ProtectedRoute>
           }
         />
       </Route>

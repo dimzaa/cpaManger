@@ -408,12 +408,45 @@ async def upload_budget_file(
                                         ),
                                     }
                                 ]
-                            # NOTE: upload.py was truncated at this point in the source
-                            # snapshot; the downstream branch that consumes institution_rows
-                            # was not preserved. Stub below keeps the module importable so
-                            # tests and routers load. Real high-school-breakdown ingestion
-                            # is covered by the backend services invoked elsewhere.
-                            _ = institution_rows  # pragma: no cover
+                            # RESTORED: persist institution_rows into budget_line_institutions
+                            # so topic_summaries.n_institutions / top_institution_* populate.
+                            for inst in institution_rows:
+                                db.add(BudgetLineInstitution(
+                                    budget_line_id=budget_line.id,
+                                    institution_code=inst["institution_code"],
+                                    institution_name=inst.get("institution_name"),
+                                    amount=float(inst["amount"]),
+                                    num_children=inst.get("num_children"),
+                                ))
+
+                        # Outside the high-school guard: also persist per-row institution
+                        # data for ANY topic that carries institution_code in its breakdown
+                        # row (e.g. GY003 has 7 kindergartens per topic 3). This is what
+                        # populates Priority-2 n_institutions for non-HS codes.
+                        elif (
+                            'institution_code' in breakdown_row.index
+                            and pd.notna(breakdown_row['institution_code'])
+                            and str(breakdown_row['institution_code']).strip()
+                        ):
+                            inst_code = str(breakdown_row['institution_code']).strip()
+                            inst_name = (
+                                str(breakdown_row['institution_name']).strip()
+                                if 'institution_name' in breakdown_row.index
+                                and pd.notna(breakdown_row['institution_name'])
+                                else None
+                            )
+                            db.add(BudgetLineInstitution(
+                                budget_line_id=budget_line.id,
+                                institution_code=inst_code,
+                                institution_name=inst_name,
+                                amount=float(breakdown_row['amount']),
+                                num_children=(
+                                    int(breakdown_row['children_count'])
+                                    if 'children_count' in breakdown_row.index
+                                    and pd.notna(breakdown_row['children_count'])
+                                    else None
+                                ),
+                            ))
 
                     db.flush()
 
