@@ -129,27 +129,30 @@ def recompute_one_run(cur, run_id, muni_id, run_month):
         w = cur.fetchone()
         tie_diff = float(w[0]) if w and w[0] is not None else 0.0
 
-        # Institutions
+        # Institutions: query budget_line_institutions JOIN budget_lines.
+        # If budget_line_institutions is empty (it usually is — the high-school stub
+        # in upload.py was truncated), this returns 0/NULL gracefully.
         cur.execute("""
-            SELECT COUNT(DISTINCT institution_code),
-                   (SELECT institution_code FROM budget_lines
-                    WHERE run_id = %s AND topic_code = %s AND institution_code IS NOT NULL
-                    GROUP BY institution_code, institution_name
-                    ORDER BY ABS(SUM(amount)) DESC LIMIT 1),
-                   (SELECT institution_name FROM budget_lines
-                    WHERE run_id = %s AND topic_code = %s AND institution_code IS NOT NULL
-                    GROUP BY institution_code, institution_name
-                    ORDER BY ABS(SUM(amount)) DESC LIMIT 1),
-                   (SELECT ROUND(SUM(amount)::numeric, 2) FROM budget_lines
-                    WHERE run_id = %s AND topic_code = %s AND institution_code IS NOT NULL
-                    GROUP BY institution_code, institution_name
-                    ORDER BY ABS(SUM(amount)) DESC LIMIT 1)
-            FROM budget_lines
-            WHERE run_id = %s AND topic_code = %s AND institution_code IS NOT NULL
-        """, (run_id, topic_code, run_id, topic_code, run_id, topic_code, run_id, topic_code))
-        inst_row = cur.fetchone() or (0, None, None, None)
-        n_inst, top_code, top_name, top_amt = inst_row
-        n_inst = int(n_inst or 0)
+            SELECT COUNT(DISTINCT bli.institution_code)
+            FROM budget_line_institutions bli
+            JOIN budget_lines bl ON bl.id = bli.budget_line_id
+            WHERE bl.run_id = %s AND bl.topic_code = %s
+        """, (run_id, topic_code))
+        n_inst = int((cur.fetchone() or (0,))[0] or 0)
+        cur.execute("""
+            SELECT bli.institution_code, bli.institution_name,
+                   ROUND(SUM(bli.amount)::numeric, 2) AS s
+            FROM budget_line_institutions bli
+            JOIN budget_lines bl ON bl.id = bli.budget_line_id
+            WHERE bl.run_id = %s AND bl.topic_code = %s
+            GROUP BY bli.institution_code, bli.institution_name
+            ORDER BY ABS(SUM(bli.amount)) DESC LIMIT 1
+        """, (run_id, topic_code))
+        trow = cur.fetchone()
+        if trow:
+            top_code, top_name, top_amt = trow
+        else:
+            top_code, top_name, top_amt = None, None, None
 
         cur.execute("""
             INSERT INTO topic_summaries (

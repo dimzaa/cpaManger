@@ -52,7 +52,7 @@ def main():
                      WHEN anomaly_flag = 'disappeared' THEN
                        'קוד ' || topic_code || ' (' || COALESCE(topic_name, '') || ') נעלם החודש'
                      WHEN anomaly_flag = 'outlier' THEN
-                       'קוד ' || topic_code || ' (' || COALESCE(topic_name, '') || ') השתנה ב-' || COALESCE(ROUND(delta_pct::numeric, 1)::text, '?') || '%'
+                       'קוד ' || topic_code || ' (' || COALESCE(topic_name, '') || ') השתנה ב-' || COALESCE(ROUND(delta_pct::numeric, 1)::text, '?') || '%%'
                      ELSE 'קוד ' || topic_code
                    END
             FROM topic_summaries
